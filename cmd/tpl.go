@@ -28,37 +28,51 @@ type AppConfig struct {
 	Functions map[string]FunctionConfig
 }
 
-//TODO Better error handling for testing
-func tplCommand(cmd *cobra.Command, args []string) {
-	fc := initFunctionConfig(cmd, args)
-	output := fc.handleFunc(cmd)
+var fc FunctionConfig
+
+func tplCommand(cmd *cobra.Command, args []string) error {
+	err := initFunctionConfig(cmd, args)
+	if err != nil {
+		return err
+	}
+
+	output, err := fc.handleFunc(cmd)
+	if err != nil {
+		return err
+	}
+
 	fmt.Fprintf(cmd.OutOrStdout(), output)
+	return nil
 }
 
-func initFunctionConfig(cmd *cobra.Command, args []string) FunctionConfig {
-	fc := FunctionConfig{}
+func initFunctionConfig(cmd *cobra.Command, args []string) error {
 	config := viper.AllSettings()
 
 	if len(config) == 0 {
-		util.HandleError(cmd, util.NO_FUNC_NAME_ERR.Err(), util.NO_CONFIG_FILE_ERR)
+		return util.HandleError(cmd, util.NO_FUNC_NAME_ERR.Err(), util.NO_CONFIG_FILE_ERR)
 	}
 
 	if len(args) == 0 {
-		util.HandleError(cmd, util.NO_FUNC_NAME_ERR.Err(), util.NO_FUNC_NAME_ERR)
+		return util.HandleError(cmd, util.NO_FUNC_NAME_ERR.Err(), util.NO_FUNC_NAME_ERR)
 	}
 
 	var appConfig AppConfig
 	err := mapstructure.Decode(config, &appConfig.Functions)
 	if err != nil {
-		util.HandleError(cmd, err, util.INVALID_CONFIG_ERR)
+		return util.HandleError(cmd, err, util.INVALID_CONFIG_ERR)
 	}
 
-	fc, ok := appConfig.Functions[args[0]]
+	funcConfig, ok := appConfig.Functions[args[0]]
 	if !ok {
-		util.HandleError(cmd, util.NO_FUNC_FOUND_ERR.Err(), util.NO_FUNC_FOUND_ERR)
+		return util.HandleError(cmd, util.NO_FUNC_FOUND_ERR.Err(), util.NO_FUNC_FOUND_ERR)
 	}
 
-	return fc
+	if funcConfig.Url == "" {
+		return util.HandleError(cmd, util.NO_URL_ERR.Err(), util.NO_URL_ERR)
+	}
+
+	fc = funcConfig
+	return nil
 }
 
 func (fc *FunctionConfig) makeHttpCall(jsonData []byte, cmd *cobra.Command) ([]byte, error) {
@@ -97,28 +111,28 @@ func (fc *FunctionConfig) makeHttpCall(jsonData []byte, cmd *cobra.Command) ([]b
 	return body, nil
 }
 
-func (fc *FunctionConfig) handleFunc(cmd *cobra.Command) string {
+func (fc *FunctionConfig) handleFunc(cmd *cobra.Command) (string, error) {
 	jsonData, err := fc.getJSONData()
 	if err != nil {
-		util.HandleError(cmd, err, util.FAILED_TO_GET_DATA)
+		return "", util.HandleError(cmd, err, util.FAILED_TO_GET_DATA)
 	}
 
 	body, err := fc.makeHttpCall(jsonData, cmd)
 	if err != nil {
-		util.HandleError(cmd, err, util.FAILED_TO_MAKE_HTTP_CALL)
+		return "", util.HandleError(cmd, err, util.FAILED_TO_MAKE_HTTP_CALL)
 	}
 
 	responseData, err := util.ParseJSONResponse(body)
 	if err != nil {
-		util.HandleError(cmd, err, util.FAILED_TO_PARSE_JSON)
+		return "", util.HandleError(cmd, err, util.FAILED_TO_PARSE_JSON)
 	}
 
 	output, err := util.GetOutputField(responseData, fc.Output)
 	if err != nil {
-		util.HandleError(cmd, err, util.FAILED_TO_PARSE_OUTPUT_FIELD)
+		return "", util.HandleError(cmd, err, util.FAILED_TO_PARSE_OUTPUT_FIELD)
 	}
 
-	return output
+	return output, nil
 }
 
 func (fc *FunctionConfig) getJSONData() ([]byte, error) {
