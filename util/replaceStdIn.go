@@ -32,8 +32,13 @@ func ReplaceStdIn(input []byte) ([]byte, error) {
 
 		stdInStr := string(data)
 		stdInStr = removeControlChars(stdInStr)
-		stdInStr = strings.Replace(stdInStr, "\"", "\\\"", -1)
-		stdInStr = strings.Replace(stdInStr, "\n", "\\n", -1)
+
+		escapedStdIn, err := json.Marshal(stdInStr)
+		if err != nil {
+			return nil, fmt.Errorf("Error escaping stdin string: %v", err)
+		}
+		stdInStr = string(escapedStdIn[1 : len(escapedStdIn)-1])
+
 		result := strings.Replace(inputStr, "${STDIN}", stdInStr, -1)
 		return []byte(result), nil
 	}
