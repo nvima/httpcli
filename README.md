@@ -8,8 +8,8 @@ You can also pipe the stdin to your API Response with ${STDIN}.
 ## Example YAML Configuration
 
 Here's an example of a YAML configuration file that includes two different API requests: `gitdiff` and `translate`.
-
-```yaml PATH: ~/.httpcli.yaml
+~/.httpcli.yaml
+```
 gitdiff:
   url: "https://api.openai.com/v1/chat/completions"
   header:
