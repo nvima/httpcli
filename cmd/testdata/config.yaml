@@ -9,6 +9,7 @@ gitdiff:
       - role: "user"
         content: "Hello"
   output: "choices[0].message.content" 
+  statuscode: 200
   env:
     - "TEST_API_KEY"
     - "TEST_SERVER_URL"
