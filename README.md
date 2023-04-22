@@ -13,7 +13,7 @@ Here's an example of a YAML configuration file that includes two different API r
 gitdiff:
   url: "https://api.openai.com/v1/chat/completions"
   header:
-    - "Content-Type: application/x-www-form-urlencoded"
+    - "Content-Type: application/json"
     - "Authorization: Bearer ${OPENAI_API_KEY}"
   data:
     model: "gpt-3.5-turbo"
