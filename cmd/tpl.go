@@ -47,17 +47,16 @@ func tplCommand(cmd *cobra.Command, args []string) {
 	if !ok {
 		panic("No config found for function: " + args[0])
 	}
-
-	fc.handleFunc()
+	
+    fmt.Fprintf(cmd.OutOrStdout(), fc.handleFunc())
 }
 
-func (fc *FunctionConfig) handleFunc() {
+func (fc *FunctionConfig) handleFunc() string {
 	jsonData := fc.getJSONData()
 
-	req, err := http.NewRequest("POST", fc.Url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", fc.replaceEnvVariables(fc.Url), bytes.NewBuffer(jsonData))
 	if err != nil {
-		fmt.Println("Failed to create request:", err)
-		return
+        panic("Failed to create request: " + err.Error())
 	}
 
 	for _, header := range fc.Header {
@@ -71,22 +70,18 @@ func (fc *FunctionConfig) handleFunc() {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println("Failed to send request:", err)
-		return
+        panic("Failed to send request: " + err.Error())
 	}
 	// Read the response body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		fmt.Println("Failed to read response body:", err)
-		return
+        panic("Failed to read response body: " + err.Error())
 	}
 	defer resp.Body.Close()
 
 	// Check if the request was successful
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Request failed with status:", resp.Status)
-        fmt.Println("Response body:", string(body))
-		return
+        panic("Request failed, Status: " + resp.Status + ", Body: " + string(body))
 	}
 
 	// Parse the JSON response
@@ -96,8 +91,7 @@ func (fc *FunctionConfig) handleFunc() {
 	}
 
 	// Extract the desired output from the JSON response
-	output := util.GetOutputField(responseData, fc.Output)
-	fmt.Print(output)
+	return util.GetOutputField(responseData, fc.Output)
 }
 
 func (fc *FunctionConfig) getJSONData() []byte {
