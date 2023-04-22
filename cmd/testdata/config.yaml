@@ -1,0 +1,27 @@
+gitdiff:
+  url: "${TEST_SERVER_URL}/v1/chat/completions"
+  header:
+    - "Content-Type: application/json"
+    - "Authorization: Bearer ${TEST_API_KEY}"
+  data:
+    model: "gpt-3.5-turbo"
+    messages:
+      - role: "user"
+        content: "Hello"
+  output: "choices[0].message.content" 
+  env:
+    - "TEST_API_KEY"
+    - "TEST_SERVER_URL"
+translate:
+  url: "${TEST_SERVER_URL}/v2/translate"
+  header:
+    - "Content-Type: application/json"
+    - "Authorization: DeepL-Auth-Key ${TEST_API_KEY}"
+  data:
+    text: 
+      - "Apple"
+    target_lang: "FR"
+  output: "translations[0].text" 
+  env:
+    - "TEST_API_KEY"
+    - "TEST_SERVER_URL"
