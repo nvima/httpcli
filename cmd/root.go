@@ -23,7 +23,7 @@ For example, the following command:
 
 reads from the YAML configuration file, processes the "translate" function, and sends an API request to an API.
 The response is then printed to stdout. For more Information about YAML Configuration, visit https://github.com/nvima/httpcli.`,
-	Run: tplCommand,
+	RunE: tplCommand,
 }
 
 func Execute() {

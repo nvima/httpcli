@@ -26,3 +26,15 @@ translate:
   env:
     - "TEST_API_KEY"
     - "TEST_SERVER_URL"
+emptydata:
+  url: "${TEST_SERVER_URL}/emptydata"
+  output: "response"
+  env:
+    - "TEST_SERVER_URL"
+emptyoutput:
+  url: "${TEST_SERVER_URL}/emptydata"
+  env:
+    - "TEST_SERVER_URL"
+emptyurl:
+  env:
+    - "TEST_SERVER_URL"
