@@ -54,7 +54,7 @@ func ParseJSONResponse(jsonData []byte) (map[string]interface{}, error) {
 	return data, nil
 }
 
-func GetOutputField(data interface{}, fieldPath string) string {
+func GetOutputField(data interface{}, fieldPath string) (string, error) {
 	keys := strings.Split(fieldPath, ".")
 
 	var result interface{} = data
@@ -67,14 +67,14 @@ func GetOutputField(data interface{}, fieldPath string) string {
 			index := key[strings.Index(key, "[")+1 : strings.Index(key, "]")]
 			m, ok := result.(map[string]interface{})[innerKey].([]interface{})
 			if !ok {
-				panic("invalid output path")
+				return "", fmt.Errorf("invalid output path")
 			}
 			intVar, _ := strconv.Atoi(index)
 			result = m[intVar]
 		} else {
 			m, ok := result.(map[string]interface{})[key]
 			if !ok {
-				panic("invalid output path")
+				return "", fmt.Errorf("invalid output path")
 			}
 			result = m
 		}
@@ -83,12 +83,14 @@ func GetOutputField(data interface{}, fieldPath string) string {
 	if _, ok := result.(map[string]interface{}); ok {
 		jsonResult, err := json.Marshal(result)
 		if err != nil {
-			panic(err)
+			return "", err
 		}
-		return string(jsonResult)
+		return string(jsonResult), nil
 	}
+
 	if _, ok := result.(string); ok {
-		return result.(string)
+		return result.(string), nil
 	}
-	panic("invalid output path")
+
+	return "", fmt.Errorf("invalid output path")
 }
