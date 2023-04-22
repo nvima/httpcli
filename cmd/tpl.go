@@ -74,13 +74,6 @@ func (fc *FunctionConfig) handleFunc() {
 		fmt.Println("Failed to send request:", err)
 		return
 	}
-
-	// Check if the request was successful
-	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Request failed with status:", resp.Status)
-		return
-	}
-
 	// Read the response body
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -88,6 +81,13 @@ func (fc *FunctionConfig) handleFunc() {
 		return
 	}
 	defer resp.Body.Close()
+
+	// Check if the request was successful
+	if resp.StatusCode != http.StatusOK {
+		fmt.Println("Request failed with status:", resp.Status)
+        fmt.Println("Response body:", string(body))
+		return
+	}
 
 	// Parse the JSON response
 	responseData, err := util.ParseJSONResponse(body)
