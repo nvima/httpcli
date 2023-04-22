@@ -1,6 +1,11 @@
+name: "httpcli release"
 on:
   release:
     types: [created]
+
+permissions:
+    contents: write
+    packages: write
 
 jobs:
   release-linux-amd64:
