@@ -26,6 +26,7 @@ gitdiff:
           please help me write a descriptive and informative git commit message:
           ${STDIN}
   output: "choices[0].message.content"
+  statuscode: 200
   env:
     - "OPENAI_API_KEY"
 translate:
@@ -58,6 +59,31 @@ To generate a git commit message based on a git diff output using the gitdiff AP
 $ git diff --staged | httpcli gitdiff
 Added initial implementation of main.go file with necessary package imports and function call to execute CLI command.
 ```
+
+## YAML Attributes
+In your YAML configuration file, the following attributes can be used to define your API requests:
+
+| Attribute  | Required/Optional | Description                                                                                                         |
+|------------|------------------|---------------------------------------------------------------------------------------------------------------------|
+| `url`      | Required         | The URL to which the API request will be sent.                                                                      |
+| `header`   | Optional         | Headers to be included in the API request.                                                                          |
+| `data`     | Optional         | The payload to be sent with the API request                                                                         |
+| `statuscode` | Optional       | The expected status code for the API response. If a different response code is received, the CLI tool will return an error and not proceed with parsing the response. |
+| `output`   | Optional         | Specifies how the JSON response should be parsed, e.g., "translations[0].text". If omitted, the entire JSON response will be written to stdout without parsing. |
+| `env`      | Optional         | Searches for environment variables in other YAML attributes and replaces them with the corresponding values using this pattern: ${API_KEY}. |
+
+
+This structure allows you to easily define and customize your API requests within the YAML configuration file.
+
+## CLI Flags
+
+`httpcli` supports various flags to customize its behavior and provide additional functionality. These flags can be passed along with the command to modify the tool's behavior:
+
+- `--config string`: Specify a custom configuration file. By default, the tool uses the `$HOME/.httpcli.yaml` file. You can provide a different file path using this flag (e.g., `httpcli --config=./my-config.yaml`).
+- `--debug`: Enable debug mode to display more detailed error messages and logs for troubleshooting purposes.
+- `-h, --help`: Display help information for the `httpcli` command, including a list of available flags and usage instructions.
+
+Use these flags in combination with your API request commands to customize the behavior of `httpcli` according to your needs.
 
 ## Work in Progress
 Please note that httpcli is a work in progress tool and may contain errors or incomplete features.

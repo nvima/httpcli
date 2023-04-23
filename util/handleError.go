@@ -11,5 +11,6 @@ func HandleError(cmd *cobra.Command, err error, tplError error) error {
 	if debug {
 		fmt.Printf("Debug: %v\n", err)
 	}
+	fmt.Println(tplError.Error())
 	return tplError
 }
