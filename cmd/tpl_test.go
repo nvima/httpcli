@@ -114,7 +114,17 @@ func TestEmptyUrl(t *testing.T) {
 	rootCmd.SetOut(b)
 	rootCmd.SetArgs([]string{"emptyurl", "--config", "./testdata/config.yaml"})
 	err := rootCmd.Execute()
-	if err.Error() != util.NO_URL_ERR.Msg() {
-		t.Fatalf("expected \"%s\" got \"%s\"", util.NO_URL_ERR.Msg(), err.Error())
+	if err.Error() != util.NO_URL_ERR.Error() {
+		t.Fatalf("expected \"%s\" got \"%s\"", util.NO_URL_ERR.Error(), err.Error())
+	}
+}
+
+func TestWrongStatusCode(t *testing.T) {
+	b := bytes.NewBufferString("")
+	rootCmd.SetOut(b)
+	rootCmd.SetArgs([]string{"wrongstatuscode", "--config", "./testdata/config.yaml"})
+	err := rootCmd.Execute()
+	if err.Error() != util.INVALID_RESP_CODE.Error() {
+		t.Fatalf("expected \"%s\" got \"%s\"", util.INVALID_RESP_CODE.Error(), err.Error())
 	}
 }

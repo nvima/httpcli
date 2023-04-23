@@ -1,8 +1,14 @@
 package main
 
-import "github.com/nvima/httpcli/cmd"
+import (
+	"os"
+
+	"github.com/nvima/httpcli/cmd"
+)
 
 func main() {
-        cmd.Execute()
+	err := cmd.Execute()
+	if err != nil {
+		os.Exit(1)
+	}
 }
-
