@@ -5,8 +5,15 @@ You can easily define your API requests and customize the output to extract spec
 The tool supports environment variables, allowing you to store sensitive data, such as API keys, securely.
 You can also pipe the stdin to your API Response with ${STDIN}.
 
-## Example YAML Configuration
+- [Example YAML Configuration](#example-yaml-configuration)
+- [Usage Examples](#usage-examples)
+  - [Translate Text](#translate-text)
+  - [Generate Git Commit Message](#generate-git-commit-message)
+- [YAML Attributes](#yaml-attributes)
+- [Passing Arguments to httpcli Commands](#passing-arguments-to-httpcli-commands)
+- [CLI Flags](#cli-flags)
 
+## Example YAML Configuration
 Here's an example of a YAML configuration file that includes two different API requests: `gitdiff` and `translate`.
 ~/.httpcli.yaml
 ```
@@ -74,6 +81,22 @@ In your YAML configuration file, the following attributes can be used to define 
 
 
 This structure allows you to easily define and customize your API requests within the YAML configuration file.
+
+## Passing Arguments to httpcli Commands
+
+With `httpcli`, you can pass dynamic values to your commands using the `${ARG1}`, `${ARG2}`, and so on, placeholders in your YAML configuration file. These placeholders will be replaced with the respective command line arguments provided when invoking `httpcli`.
+
+For example, let's say you have a translation API configured in your YAML file, and you want to translate a given word or phrase in a target_lang. You can use the `${ARG1}` and `${ARG2}` placeholder in your YAML configuration to represent the text you want to translate:
+
+```yaml
+translate:
+  url: "https://api.example.com/translate?text=${ARG1}&target_lang={ARG2}"
+  output: "translations[0].text"
+```
+Now, when you call httpcli with the translate command and provide a text argument, the ${ARG1} placeholder will be replaced with the provided text:
+```
+httpcli translate "A green Apple" fr
+```
 
 ## CLI Flags
 
