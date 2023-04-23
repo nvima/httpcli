@@ -45,6 +45,20 @@ func ReplaceStdIn(input []byte) ([]byte, error) {
 	return input, nil
 }
 
+func ReplaceArgs(input []byte, args []string) []byte {
+	if len(args) <= 1 {
+		return input
+	}
+
+	inputStr := string(input)
+	for i, arg := range args[1:] {
+		arg = removeControlChars(arg)
+		inputStr = strings.Replace(inputStr, fmt.Sprintf("${ARG%d}", i+1), arg, -1)
+	}
+
+	return []byte(inputStr)
+}
+
 func ParseJSONResponse(jsonData []byte) (map[string]interface{}, error) {
 	var data map[string]interface{}
 	err := json.Unmarshal(jsonData, &data)

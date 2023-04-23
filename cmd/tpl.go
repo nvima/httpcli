@@ -34,7 +34,7 @@ func tplCommand(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	output, err := fc.handleFunc(cmd)
+	output, err := fc.handleFunc(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -72,8 +72,49 @@ func initFunctionConfig(cmd *cobra.Command, args []string) (FunctionConfig, erro
 	return funcConfig, nil
 }
 
-func (fc *FunctionConfig) handleFunc(cmd *cobra.Command) (string, error) {
-	jsonData, err := fc.getJSONData(cmd)
+func (fc *FunctionConfig) replaceArgs(args []string) {
+	if len(args) <= 1 {
+		return
+	}
+	for i, arg := range args[:1] {
+		placeholder := fmt.Sprintf("${ARG%d}", i)
+
+		fc.Url = strings.Replace(fc.Url, placeholder, arg, -1)
+
+		for i, header := range fc.Header {
+			fc.Header[i] = strings.Replace(header, placeholder, arg, -1)
+		}
+	}
+}
+
+func (fc *FunctionConfig) replaceEnvVariables() {
+	for _, env := range fc.Env {
+		fc.Url = strings.Replace(fc.Url, fmt.Sprintf("${%s}", env), os.Getenv(env), -1)
+
+		for i, header := range fc.Header {
+			fc.Header[i] = strings.Replace(header, fmt.Sprintf("${%s}", env), os.Getenv(env), -1)
+		}
+	}
+}
+
+func (fc *FunctionConfig) replaceVariables(cmd *cobra.Command, args []string, jsonData []byte) ([]byte, error) {
+	fc.replaceArgs(args)
+    fc.replaceEnvVariables()
+
+	jsonData, err := util.ReplaceStdIn(jsonData)
+	if err != nil {
+		return nil, util.HandleError(cmd, err, util.REPLACE_STDIN_FAILED)
+	}
+	return util.ReplaceArgs(jsonData, args), nil
+}
+
+func (fc *FunctionConfig) handleFunc(cmd *cobra.Command, args []string) (string, error) {
+	jsonData, err := fc.getJSONData(cmd, args)
+	if err != nil {
+		return "", err
+	}
+
+	jsonData, err = fc.replaceVariables(cmd, args, jsonData)
 	if err != nil {
 		return "", err
 	}
@@ -92,15 +133,12 @@ func (fc *FunctionConfig) handleFunc(cmd *cobra.Command) (string, error) {
 }
 
 func (fc *FunctionConfig) makeHttpCall(jsonData []byte, cmd *cobra.Command) (map[string]interface{}, error) {
-	url := fc.replaceEnvVariables(fc.Url)
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequest("POST", fc.Url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return nil, util.HandleError(cmd, err, util.INIT_HTTP_POST_REQUEST_FAILED)
 	}
 
 	for _, header := range fc.Header {
-		header = fc.replaceEnvVariables(header)
-
 		headerParts := strings.SplitN(header, ":", 2)
 		if len(headerParts) == 2 {
 			req.Header.Set(strings.TrimSpace(headerParts[0]), strings.TrimSpace(headerParts[1]))
@@ -133,26 +171,11 @@ func (fc *FunctionConfig) makeHttpCall(jsonData []byte, cmd *cobra.Command) (map
 	return responseData, nil
 }
 
-func (fc *FunctionConfig) getJSONData(cmd *cobra.Command) ([]byte, error) {
+func (fc *FunctionConfig) getJSONData(cmd *cobra.Command, args []string) ([]byte, error) {
 	jsonData, err := json.Marshal(fc.Data)
 	if err != nil {
 		return nil, util.HandleError(cmd, err, util.MARSHAL_DATA_FAILED)
 	}
 
-	jsonData, err = util.ReplaceStdIn(jsonData)
-	if err != nil {
-		return nil, util.HandleError(cmd, err, util.REPLACE_STDIN_FAILED)
-	}
-
 	return jsonData, nil
-}
-
-func (fc *FunctionConfig) replaceEnvVariables(value string) string {
-	for _, envVar := range fc.Env {
-		envValue := os.Getenv(envVar)
-		placeholder := fmt.Sprintf("${%s}", envVar)
-		value = strings.Replace(value, placeholder, envValue, -1)
-	}
-
-	return value
 }
