@@ -28,10 +28,8 @@ type AppConfig struct {
 	Functions map[string]FunctionConfig
 }
 
-var fc FunctionConfig
-
 func tplCommand(cmd *cobra.Command, args []string) error {
-	err := initFunctionConfig(cmd, args)
+	fc, err := initFunctionConfig(cmd, args)
 	if err != nil {
 		return err
 	}
@@ -45,41 +43,59 @@ func tplCommand(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func initFunctionConfig(cmd *cobra.Command, args []string) error {
+func initFunctionConfig(cmd *cobra.Command, args []string) (FunctionConfig, error) {
 	config := viper.AllSettings()
 
 	if len(config) == 0 {
-		return util.HandleError(cmd, util.NO_FUNC_NAME_ERR.Err(), util.NO_CONFIG_FILE_ERR)
+		return FunctionConfig{}, util.HandleError(cmd, util.NO_FUNC_NAME_ERR, util.NO_CONFIG_FILE_ERR)
 	}
 
 	if len(args) == 0 {
-		return util.HandleError(cmd, util.NO_FUNC_NAME_ERR.Err(), util.NO_FUNC_NAME_ERR)
+		return FunctionConfig{}, util.HandleError(cmd, util.NO_FUNC_NAME_ERR, util.NO_FUNC_NAME_ERR)
 	}
 
 	var appConfig AppConfig
 	err := mapstructure.Decode(config, &appConfig.Functions)
 	if err != nil {
-		return util.HandleError(cmd, err, util.INVALID_CONFIG_ERR)
+		return FunctionConfig{}, util.HandleError(cmd, err, util.INVALID_CONFIG_ERR)
 	}
 
 	funcConfig, ok := appConfig.Functions[args[0]]
 	if !ok {
-		return util.HandleError(cmd, util.NO_FUNC_FOUND_ERR.Err(), util.NO_FUNC_FOUND_ERR)
+		return FunctionConfig{}, util.HandleError(cmd, util.NO_FUNC_FOUND_ERR, util.NO_FUNC_FOUND_ERR)
 	}
 
 	if funcConfig.Url == "" {
-		return util.HandleError(cmd, util.NO_URL_ERR.Err(), util.NO_URL_ERR)
+		return FunctionConfig{}, util.HandleError(cmd, util.NO_URL_ERR, util.NO_URL_ERR)
 	}
 
-	fc = funcConfig
-	return nil
+	return funcConfig, nil
 }
 
-func (fc *FunctionConfig) makeHttpCall(jsonData []byte, cmd *cobra.Command) ([]byte, error) {
+func (fc *FunctionConfig) handleFunc(cmd *cobra.Command) (string, error) {
+	jsonData, err := fc.getJSONData(cmd)
+	if err != nil {
+		return "", err
+	}
+
+	response, err := fc.makeHttpCall(jsonData, cmd)
+	if err != nil {
+		return "", err
+	}
+
+	output, err := util.GetOutputField(response, fc.Output)
+	if err != nil {
+		return "", util.HandleError(cmd, err, util.FAILED_TO_PARSE_OUTPUT_FIELD)
+	}
+
+	return output, nil
+}
+
+func (fc *FunctionConfig) makeHttpCall(jsonData []byte, cmd *cobra.Command) (map[string]interface{}, error) {
 	url := fc.replaceEnvVariables(fc.Url)
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return nil, err
+		return nil, util.HandleError(cmd, err, util.INIT_HTTP_POST_REQUEST_FAILED)
 	}
 
 	for _, header := range fc.Header {
@@ -94,56 +110,38 @@ func (fc *FunctionConfig) makeHttpCall(jsonData []byte, cmd *cobra.Command) ([]b
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, util.HandleError(cmd, err, util.SEND_HTTP_POST_REQUEST_FAILED)
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, util.HandleError(cmd, err, util.READ_RESPONSE_BODY_FAILED)
 	}
 	defer resp.Body.Close()
 
 	// Check if the request was successful when a status code is provided
 	if fc.StatusCode != 0 && resp.StatusCode != fc.StatusCode {
 		err := fmt.Errorf("Request failed with status code %d, Body: %s", resp.StatusCode, string(body))
-		util.HandleError(cmd, err, util.INVALID_RESP_CODE)
-	}
-	return body, nil
-}
-
-func (fc *FunctionConfig) handleFunc(cmd *cobra.Command) (string, error) {
-	jsonData, err := fc.getJSONData()
-	if err != nil {
-		return "", util.HandleError(cmd, err, util.FAILED_TO_GET_DATA)
-	}
-
-	body, err := fc.makeHttpCall(jsonData, cmd)
-	if err != nil {
-		return "", util.HandleError(cmd, err, util.FAILED_TO_MAKE_HTTP_CALL)
+		return nil, util.HandleError(cmd, err, util.INVALID_RESP_CODE)
 	}
 
 	responseData, err := util.ParseJSONResponse(body)
 	if err != nil {
-		return "", util.HandleError(cmd, err, util.FAILED_TO_PARSE_JSON)
+		return nil, util.HandleError(cmd, err, util.FAILED_TO_PARSE_JSON_RESPONSE)
 	}
 
-	output, err := util.GetOutputField(responseData, fc.Output)
-	if err != nil {
-		return "", util.HandleError(cmd, err, util.FAILED_TO_PARSE_OUTPUT_FIELD)
-	}
-
-	return output, nil
+	return responseData, nil
 }
 
-func (fc *FunctionConfig) getJSONData() ([]byte, error) {
+func (fc *FunctionConfig) getJSONData(cmd *cobra.Command) ([]byte, error) {
 	jsonData, err := json.Marshal(fc.Data)
 	if err != nil {
-		return nil, err
+		return nil, util.HandleError(cmd, err, util.MARSHAL_DATA_FAILED)
 	}
 
 	jsonData, err = util.ReplaceStdIn(jsonData)
 	if err != nil {
-		return nil, err
+		return nil, util.HandleError(cmd, err, util.REPLACE_STDIN_FAILED)
 	}
 
 	return jsonData, nil

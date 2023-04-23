@@ -23,19 +23,19 @@ For example, the following command:
 
 reads from the YAML configuration file, processes the "translate" function, and sends an API request to an API.
 The response is then printed to stdout. For more Information about YAML Configuration, visit https://github.com/nvima/httpcli.`,
-	RunE: tplCommand,
+	RunE:          tplCommand,
+	SilenceUsage:  true,
+	SilenceErrors: true,
 }
 
-func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
-		os.Exit(1)
-	}
+func Execute() error {
+	return rootCmd.Execute()
 }
 
 func init() {
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.httpcli.yaml)")
+	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug mode for error logging")
 }
 
 func initConfig() {

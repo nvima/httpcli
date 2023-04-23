@@ -38,3 +38,8 @@ emptyoutput:
 emptyurl:
   env:
     - "TEST_SERVER_URL"
+wrongstatuscode:
+  url: "${TEST_SERVER_URL}/nonexistentpath"
+  statuscode: 200
+  env:
+    - "TEST_SERVER_URL"
