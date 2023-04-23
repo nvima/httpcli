@@ -48,6 +48,19 @@ translate:
   output: "translations[0].text"
   env:
     - "DEEPL_AUTH"
+ask:
+  url: "https://api.openai.com/v1/chat/completions"
+  header:
+    - "Content-Type: application/json"
+    - "Authorization: Bearer ${OPENAI_API_KEY}"
+  data:
+    model: "gpt-3.5-turbo"
+    messages:
+      - role: "user"
+        content: ${ARG1}
+  output: "choices[0].message.content" 
+  env:
+    - "OPENAI_API_KEY"
 ```
 
 ## Usage Examples
@@ -65,6 +78,13 @@ To generate a git commit message based on a git diff output using the gitdiff AP
 ```
 $ git diff --staged | httpcli gitdiff
 Added initial implementation of main.go file with necessary package imports and function call to execute CLI command.
+```
+
+### Ask a Question
+To ask a random Question with an argument
+```
+$ httpcli ask "How many times Germany became world champion"
+Germany has become world champion four times: in 1954, 1974, 1990, and 2014.
 ```
 
 ## YAML Attributes
